@@ -1,0 +1,46 @@
+name: ci
+
+# The repository's CI. ci-ok is the one check its rulesets require: it passes
+# only when every job it needs passed or was skipped. Until the repository has
+# a go.mod (its phase has not started), the go job passes without building.
+on:
+  push:
+    branches: [main, 'program/**']
+  pull_request:
+    branches: [main, 'program/**']
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: mod
+        run: |
+          if [ -f go.mod ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "no go.mod yet: nothing to vet or test"
+          fi
+      - if: steps.mod.outputs.present == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - if: steps.mod.outputs.present == 'true'
+        run: go vet ./...
+      - if: steps.mod.outputs.present == 'true'
+        run: go test ./...
+
+  ci-ok:
+    needs: [go]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<< "$NEEDS"

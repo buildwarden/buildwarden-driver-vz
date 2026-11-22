@@ -1,0 +1,15 @@
+# Build output
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+coverage.out
+
+# Local state
+.DS_Store
+.dev/
+.tmp/
+.scratch/
+.claude/settings.local.json
+.claude/worktrees/
